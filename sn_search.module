@@ -1,0 +1,203 @@
+<?php
+
+/**
+ * @file
+ * Site specific search functionality.
+ */
+
+/**
+ * Implements hook_block_info()
+ */
+function sn_search_block_info() {
+
+  return array(
+
+    'main-search' => array(
+      'info' => 'Search: Main form',
+    ),
+
+    'refine-search' => array(
+      'info' => 'Search: Refinement form',
+    ),
+
+  );
+}
+
+/**
+ * Implements hook_block_view()
+ */
+function sn_search_block_view( $delta ) {
+
+  switch ( $delta ) {
+
+  case 'main-search' :
+    return array(
+      'content' => drupal_get_form( '_sn_search_main_form' )
+    );
+
+  case 'refine-search' :
+    return array(
+      'content' => drupal_get_form( '_sn_search_refine_form' )
+    );
+
+  }
+}
+
+/**
+ * Form-building function for main search form.
+ */
+function _sn_search_main_form() {
+
+  $continents = _sn_get_term_options( 'continents' );
+  $countries = _sn_get_term_options( 'countries', 'field_continent' );
+  $regions = _sn_get_term_options( 'regions', 'field_country' );
+  $hotels = _sn_search_get_hotel_options();
+  //$multi_centres = _sn_search_get_multi_centre_options();
+
+  $form['continents'] = array(
+    '#type' => 'select',
+    '#multiple' => FALSE,
+    '#empty_option' => t('Select continent'),
+    '#options' => $continents,
+  );
+  $form['countries'] = array(
+    '#type' => 'select',
+    '#multiple' => FALSE,
+    '#empty_option' => t('Select country'),
+    '#options' => $countries,
+  );
+  $form['regions'] = array(
+    '#type' => 'select',
+    '#multiple' => FALSE,
+    '#empty_option' => t('Select region'),
+    '#options' => $regions,
+  );
+  $form['destinations'] = array(
+    '#type' => 'select',
+    '#multiple' => FALSE,
+    '#empty_option' => t('Destination'),
+    '#options' => $hotels,
+  );
+  $form['multi-centre'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Multi Centre Holidays'),
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Search'),
+  );
+
+  return $form;
+}
+
+/**
+ * Submit function for the main search form.
+ *
+ * From the values selected by the user, build a URL for the search
+ * view that we want.
+ */
+function _sn_search_main_form_submit() {
+}
+
+
+function _sn_get_term_options( $vocab_name, $parent_field_name=NULL ) {
+  $query = new EntityFieldQuery();
+  $entities = $query
+    ->entityCondition('entity_type', 'taxonomy_term')
+    ->entityCondition('bundle', $vocab_name)
+    ->execute();
+
+  dsm( $entities );
+
+  $terms = taxonomy_term_load_multiple(
+    array_keys( $entities['taxonomy_term'] ) );
+
+  dsm( $terms );
+
+  $options = array();
+  foreach ( $terms as $term ) {
+    if ( $parent_field_name ) {
+      $key_prefix = $term->{"$parent_field_name"}['und'][0]['tid'] . '/';
+    }
+    else {
+      $key_prefix = '';
+    }
+    $options[ $key_prefix . $term->tid ] = $term->name;
+  }
+
+  dsm( $options );
+
+  return $options;
+}
+
+function _sn_search_get_hotel_options() {
+  $query = new EntityFieldQuery();
+  $entities = $query
+    ->entityCondition('entity_type', 'node')
+    ->entityCondition('bundle', 'hotel' )
+    ->execute();
+
+  dsm( $entities );
+
+  $nodes = node_load_multiple( array_keys( $entities['node'] ) );
+
+  dsm( $nodes );
+
+  $options = array();
+  foreach ( $nodes as $node ) {
+    /*if ( $parent_field_name ) {
+      //$key_prefix = $node->{"$parent_field_name"}['und'][0]['tid'] . '/';
+      $key_prefix = $node->field_region['und'][0]['tid'] . '/';
+    }
+    else*/ {
+      $key_prefix = '';
+    }
+    $options[ $key_prefix . $node->nid ] = $node->title;
+  }
+
+  dsm( $options );
+
+  return $options;
+}
+
+function _sn_search_get_multi_centre_options() {
+  $query = new EntityFieldQuery();
+  $entities = $query
+    ->entityCondition('entity_type', 'node')
+    ->entityCondition('bundle', 'multi_centre_holiday' )
+    ->execute();
+
+  dsm( $entities );
+
+  $nodes = node_load_multiple( array_keys( $entities['node'] ) );
+
+  dsm( $nodes );
+
+  $options = array();
+  foreach ( $nodes as $node ) {
+    /*
+    if ( $parent_field_name ) {
+      //$key_prefix = $node->{"$parent_field_name"}['und'][0]['tid'] . '/';
+      $key_prefix = $node->field_region['und'][0]['tid'] . '/';
+    }
+    else */{
+      $key_prefix = '';
+    }
+    $options[ $key_prefix . $node->nid ] = $node->title;
+  }
+
+  dsm( $options );
+
+  return $options;
+}
+
+/**
+ */
+function _sn_search_refine_form() {
+}
+
+/**
+ */
+function _sn_search_refine_form_submit() {
+}
+

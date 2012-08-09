@@ -1,0 +1,4 @@
+name = SN Search
+description = Site specific search functionality
+core = 7.x
+package = indiespring
