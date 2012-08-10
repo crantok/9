@@ -58,10 +58,6 @@ function _sn_search_main_form() {
   //$destinations = array_merge( $hotels, $multi_centres );
   $destinations = $hotels;
 
-  $form['multi-centre'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Multi Centre Holidays'),
-  );
   $form['continents'] = array(
     '#type' => 'select',
     '#multiple' => FALSE,
@@ -86,9 +82,13 @@ function _sn_search_main_form() {
     '#empty_option' => t('Destination'),
     '#options' => $destinations,
   );
+  $form['multi-centre'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Multi Centre Holidays'),
+  );
   $form['submit'] = array(
     '#type' => 'submit',
-    '#value' => t('Search'),
+    '#value' => t('Check availability'),
   );
 
   return $form;
@@ -97,10 +97,71 @@ function _sn_search_main_form() {
 /**
  * Submit function for the main search form.
  *
- * From the values selected by the user, build a URL for the search
- * view that we want.
+ * Tediously long function but very simple logic: Find the most specific
+ * thing that the user selected and got to the relevant node or search view.
  */
-function _sn_search_main_form_submit() {
+function _sn_search_main_form_submit( $form, &$form_state ) {
+  //dsm( $form_state );
+
+  // Did the user select multi-centre holidays?
+  if ( $form_state['values']['multi-centre'] ) {
+
+    // selected destination?
+      // go to destination node
+    // else
+      $base_path = 'search-multi-centre/';
+      // selected region?
+        // go to search by region
+      // else selected country?
+        // go to search by country
+      // else selected continent?
+        // go to search by continent
+      // endif
+    // endif
+  }
+  else { // User did not select multi-centre
+
+    // Did the user select a specific destination?
+    if ( ! empty( $form_state['values']['destinations'] ) ) {
+      $id = _sn_search_get_id_from_selection( $form_state['values']['destinations'] );
+      $form_state['redirect'][] = 'node/' . $id;
+    }
+    else { // User did not select specific destination
+      $base_path = 'search-hotels/';
+
+      // @TODO Don't just use 'all' for higher level elements.
+      // Fill these in so that the breadcrumbs look good.
+
+      // Did user select a region?
+      if ( ! empty( $form_state['values']['regions'] ) ) {
+        $id = _sn_search_get_id_from_selection( $form_state['values']['regions'] );
+        $form_state['redirect'][] = $base_path . 'all/all/' . $id;
+      }
+      // Did user select a country?
+      elseif ( ! empty( $form_state['values']['countries'] ) ) {
+        $id = _sn_search_get_id_from_selection( $form_state['values']['countries'] );
+        $form_state['redirect'][] = $base_path . 'all/' . $id;
+      }
+      // Did user select a continent?
+      elseif ( ! empty( $form_state['values']['continents'] ) ) {
+        $id = _sn_search_get_id_from_selection( $form_state['values']['continents'] );
+        $form_state['redirect'][] = $base_path . $id;
+      }
+    }
+  }
+}
+
+/**
+ * From a form select value, get the ID of the relevant entity.
+ *
+ * NOTE: Does *not* work for multi-centre destinations.
+ */
+function _sn_search_get_id_from_selection( $selected_value ) {
+  $pattern = '#^[,\d]+/(\d+)$#';
+  $matches = array();
+  $success = preg_match( $pattern, $selected_value, $matches );
+  //dsm( $matches );
+  return $success ? $matches[1] : NULL;
 }
 
 /**
@@ -195,11 +256,11 @@ function _sn_search_get_multi_centre_options() {
     ->entityCondition('bundle', 'multi_centre_holiday' )
     ->execute();
 
-  dsm( $entities );
+  //dsm( $entities );
 
   $nodes = node_load_multiple( array_keys( $entities['node'] ) );
 
-  dsm( $nodes );
+  //dsm( $nodes );
 
   $options = array();
   foreach ( $nodes as $node ) {
@@ -218,7 +279,7 @@ function _sn_search_get_multi_centre_options() {
     $options[ $region_ids . '/' . $node->nid ] = $node->title;
   }
 
-  dsm( $options );
+  //dsm( $options );
 
   return $options;
 }
