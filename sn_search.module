@@ -52,8 +52,16 @@ function _sn_search_main_form() {
   $countries = _sn_get_term_options( 'countries', 'field_continent' );
   $regions = _sn_get_term_options( 'regions', 'field_country' );
   $hotels = _sn_search_get_hotel_options();
-  //$multi_centres = _sn_search_get_multi_centre_options();
 
+  // Need to add multi-centre content in order to test this code
+  //$multi_centres = _sn_search_get_multi_centre_options();
+  //$destinations = array_merge( $hotels, $multi_centres );
+  $destinations = $hotels;
+
+  $form['multi-centre'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Multi Centre Holidays'),
+  );
   $form['continents'] = array(
     '#type' => 'select',
     '#multiple' => FALSE,
@@ -76,11 +84,7 @@ function _sn_search_main_form() {
     '#type' => 'select',
     '#multiple' => FALSE,
     '#empty_option' => t('Destination'),
-    '#options' => $hotels,
-  );
-  $form['multi-centre'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Multi Centre Holidays'),
+    '#options' => $destinations,
   );
   $form['submit'] = array(
     '#type' => 'submit',
@@ -99,7 +103,20 @@ function _sn_search_main_form() {
 function _sn_search_main_form_submit() {
 }
 
-
+/**
+ * Get options for a select box for a given taxonomy vocabulary.
+ *
+ * @param $vocab_name
+ *   Name of the vocabuary for which the term options should be retrieved.
+ * @param $parent_field_name
+ *   Name of the field that contains a reference to the "parent" term.
+ *   NOTE that if a parent field exists then it references terms that are in
+ *   a different vocabulary from $vocab_name.
+ *
+ * @return
+ *   Array of select options. Keys and values are strings. Array has the form...
+ *   array( 'parent-id/term-id' => 'term-name', ... )
+ */
 function _sn_get_term_options( $vocab_name, $parent_field_name=NULL ) {
   $query = new EntityFieldQuery();
   $entities = $query
@@ -107,29 +124,36 @@ function _sn_get_term_options( $vocab_name, $parent_field_name=NULL ) {
     ->entityCondition('bundle', $vocab_name)
     ->execute();
 
-  dsm( $entities );
+  //dsm( $entities );
 
   $terms = taxonomy_term_load_multiple(
     array_keys( $entities['taxonomy_term'] ) );
 
-  dsm( $terms );
+  //dsm( $terms );
 
   $options = array();
   foreach ( $terms as $term ) {
     if ( $parent_field_name ) {
-      $key_prefix = $term->{"$parent_field_name"}['und'][0]['tid'] . '/';
+      $parent_id = $term->{"$parent_field_name"}['und'][0]['tid'];
     }
     else {
-      $key_prefix = '';
+      $parent_id = '0';
     }
-    $options[ $key_prefix . $term->tid ] = $term->name;
+    $options[ $parent_id . '/' . $term->tid ] = $term->name;
   }
 
-  dsm( $options );
+  //dsm( $options );
 
   return $options;
 }
 
+/**
+ * Get select options for hotels.
+ *
+ * @return
+ *   Array of select options. Keys and values are strings. Array has the form...
+ *   array( 'region-term-id/hotel-node-id' => 'hotel-node-title', ... )
+ */
 function _sn_search_get_hotel_options() {
   $query = new EntityFieldQuery();
   $entities = $query
@@ -137,29 +161,33 @@ function _sn_search_get_hotel_options() {
     ->entityCondition('bundle', 'hotel' )
     ->execute();
 
-  dsm( $entities );
+  //dsm( $entities );
 
   $nodes = node_load_multiple( array_keys( $entities['node'] ) );
 
-  dsm( $nodes );
+  //dsm( $nodes );
 
   $options = array();
   foreach ( $nodes as $node ) {
-    /*if ( $parent_field_name ) {
-      //$key_prefix = $node->{"$parent_field_name"}['und'][0]['tid'] . '/';
-      $key_prefix = $node->field_region['und'][0]['tid'] . '/';
-    }
-    else*/ {
-      $key_prefix = '';
-    }
-    $options[ $key_prefix . $node->nid ] = $node->title;
+    $parent_id = $node->field_region['und'][0]['tid'];
+    $options[ $parent_id . '/' . $node->nid ] = $node->title;
   }
 
-  dsm( $options );
+  //dsm( $options );
 
   return $options;
 }
 
+/**
+ * Get select options for multi-centre-holidays (mch).
+ *
+ * Ouput of this function is distinguishable from _sn_search_get_hotel_options
+ * because key strings in the array returned by this function start with 'MC,'.
+ *
+ * @return
+ *   Array of select options. Keys and values are strings. Array has the form...
+ *   array( 'MC,region-term-id-list/mch-node-id' => 'mch-node-title', ... )
+ */
 function _sn_search_get_multi_centre_options() {
   $query = new EntityFieldQuery();
   $entities = $query
@@ -175,15 +203,19 @@ function _sn_search_get_multi_centre_options() {
 
   $options = array();
   foreach ( $nodes as $node ) {
-    /*
-    if ( $parent_field_name ) {
-      //$key_prefix = $node->{"$parent_field_name"}['und'][0]['tid'] . '/';
-      $key_prefix = $node->field_region['und'][0]['tid'] . '/';
+
+    // Iterate through MC regions field values to build up a key prefix
+    // of comma separated region term IDs
+
+    // Add something to prefix to indicate multi-centre nature of this option
+    // How about a comma?
+
+    $region_ids = 'MC';
+    foreach( $node->field_mc_region['und'] as $region ) {
+      $region_ids .= ',' . $region['tid'];
     }
-    else */{
-      $key_prefix = '';
-    }
-    $options[ $key_prefix . $node->nid ] = $node->title;
+
+    $options[ $region_ids . '/' . $node->nid ] = $node->title;
   }
 
   dsm( $options );
