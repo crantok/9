@@ -94,75 +94,8 @@ function _sn_search_main_form() {
   return $form;
 }
 
-/**
- * Submit function for the main search form.
- *
- * Tediously long function but very simple logic: Find the most specific
- * thing that the user selected and got to the relevant node or search view.
- */
-function _sn_search_main_form_submit( $form, &$form_state ) {
-  //dsm( $form_state );
-
-  // Did the user select multi-centre holidays?
-  if ( $form_state['values']['multi-centre'] ) {
-
-    // selected destination?
-      // go to destination node
-    // else
-      $base_path = 'search-multi-centre/';
-      // selected region?
-        // go to search by region
-      // else selected country?
-        // go to search by country
-      // else selected continent?
-        // go to search by continent
-      // endif
-    // endif
-  }
-  else { // User did not select multi-centre
-
-    // Did the user select a specific destination?
-    if ( ! empty( $form_state['values']['destinations'] ) ) {
-      $id = _sn_search_get_id_from_selection( $form_state['values']['destinations'] );
-      $form_state['redirect'][] = 'node/' . $id;
-    }
-    else { // User did not select specific destination
-      $base_path = 'search-hotels/';
-
-      // @TODO Don't just use 'all' for higher level elements.
-      // Fill these in so that the breadcrumbs look good.
-
-      // Did user select a region?
-      if ( ! empty( $form_state['values']['regions'] ) ) {
-        $id = _sn_search_get_id_from_selection( $form_state['values']['regions'] );
-        $form_state['redirect'][] = $base_path . 'all/all/' . $id;
-      }
-      // Did user select a country?
-      elseif ( ! empty( $form_state['values']['countries'] ) ) {
-        $id = _sn_search_get_id_from_selection( $form_state['values']['countries'] );
-        $form_state['redirect'][] = $base_path . 'all/' . $id;
-      }
-      // Did user select a continent?
-      elseif ( ! empty( $form_state['values']['continents'] ) ) {
-        $id = _sn_search_get_id_from_selection( $form_state['values']['continents'] );
-        $form_state['redirect'][] = $base_path . $id;
-      }
-    }
-  }
-}
-
-/**
- * From a form select value, get the ID of the relevant entity.
- *
- * NOTE: Does *not* work for multi-centre destinations.
- */
-function _sn_search_get_id_from_selection( $selected_value ) {
-  $pattern = '#^[,\d]+/(\d+)$#';
-  $matches = array();
-  $success = preg_match( $pattern, $selected_value, $matches );
-  //dsm( $matches );
-  return $success ? $matches[1] : NULL;
-}
+// Helper functions for main-search form-building.
+//
 
 /**
  * Get options for a select box for a given taxonomy vocabulary.
@@ -268,9 +201,6 @@ function _sn_search_get_multi_centre_options() {
     // Iterate through MC regions field values to build up a key prefix
     // of comma separated region term IDs
 
-    // Add something to prefix to indicate multi-centre nature of this option
-    // How about a comma?
-
     $region_ids = 'MC';
     foreach( $node->field_mc_region['und'] as $region ) {
       $region_ids .= ',' . $region['tid'];
@@ -284,9 +214,205 @@ function _sn_search_get_multi_centre_options() {
   return $options;
 }
 
+//
+// End of helper functions for main-search form-building.
+
+
+/**
+ * Submit function for the main search form.
+ */
+function _sn_search_main_form_submit( $form, &$form_state ) {
+  //dsm( $form_state );
+  //
+  $destination = $form_state['values']['destinations'];
+
+  // Did the user select a specific destination?
+  if ( ! empty( $destination ) ) {
+
+    $is_multi_centre = ( 0 === strpos( $destination, 'MC' ) );
+    if ( $is_multi_centre ) {
+      // Cut off MC (multi-centre) identifier
+      $destination = substr( $destination, 2 );
+    }
+
+    $id = _sn_search_get_id_from_selection( $destination );
+    $form_state['redirect'][] = 'node/' . $id;
+  }
+  else { // User selected something larger than a specific destination
+
+    // Build path from region, country, continent selections.
+    $path = '';
+    $id = _sn_search_get_id_from_selection( $form_state['values']['regions'] );
+    $path = _sn_search_prepend_id_to_view_path( $path, $id );
+    $id = _sn_search_get_id_from_selection( $form_state['values']['countries'] );
+    $path = _sn_search_prepend_id_to_view_path( $path, $id );
+    $id = _sn_search_get_id_from_selection( $form_state['values']['continents'] );
+    $path = _sn_search_prepend_id_to_view_path( $path, $id );
+
+    // Is the user searching for multi-centre holidays?
+    if ( ! empty( $form_state['values']['multi-centre'] ) ) {
+      $path = 'search-multi-centres' . $path;
+    }
+    else {
+      $path = 'search-hotels' . $path;
+    }
+
+    // Redirect to selected view.
+    $form_state['redirect'][] = $path;
+  }
+}
+
+// Helper functions for main-search form submission.
+//
+
+/**
+ * From a form select value, get the ID of the relevant entity.
+ *
+ * NOTE: Does *not* work for multi-centre destinations.
+ */
+function _sn_search_get_id_from_selection( $selected_value ) {
+  $pattern = '#^[,\d]+/(\d+)$#';
+  $matches = array();
+  $success = preg_match( $pattern, $selected_value, $matches );
+  //dsm( $matches );
+  return $success ? $matches[1] : NULL;
+}
+
+/**
+ * Prepend an ID to a path being built for a view URL.
+ *
+ * @param $path
+ *   The path built so far. (Being built right-to-left.)
+ * @param $id
+ *   The ID to prepend to the path.
+ *
+ * @return
+ *   The path, whether or not it was modified.
+ */
+function _sn_search_prepend_id_to_view_path( $path, $id ) {
+
+  // Was an ID passed to function?
+  if ( $id ) {
+    return '/' . $id . $path;
+  }
+  else { // No ID
+
+    // Has $path already been built from more specific IDs? (Very unlikely!)
+    if ( $path ) {
+      return '/all' . $path;
+    }
+    else {
+      // No ID and no path. Presumably returning an empty string here.
+      return $path;
+    }
+  }
+}
+
+//
+// End of helper functions for main-search form submission.
+
+
+class SnSearchViewStorage {
+
+  static private $viewData = 'no data';
+
+  static public function setData( $data ) {
+    self::$viewData = $data;
+  }
+
+  static public function getData() {
+    return self::$viewData;
+  } 
+
+  static public function clearData() {
+    unset( self::$viewData );
+    self::$viewData = NULL;
+  } 
+}
+
+
+function sn_search_views_post_execute( $view ) {
+  $data = array(
+    'name' => $view->name,
+    'args' => $view->args,
+    'result' => $view->result,
+  );
+  SnSearchViewStorage::setData( $data );
+}
+
 /**
  */
 function _sn_search_refine_form() {
+
+  $continents = _sn_get_term_options( 'continents' );
+  $countries = _sn_get_term_options( 'countries', 'field_continent' );
+
+  $current_view = SnSearchViewStorage::getData();
+  dsm( $current_view );
+
+  $form['continents'] = array(
+    '#type' => 'select',
+    '#multiple' => FALSE,
+    '#options' => $continents,
+  );
+  if ( isset( $current_view['args'][0] ) ) {
+    $current_continent = $current_view['args'][0];
+    $form['continents']['#default_value'] = '0/' . $current_continent; 
+  }
+  else {
+    $form['#empty_option'] = t('Select continent');
+  }
+
+  $form['countries'] = array(
+    '#type' => 'select',
+    '#multiple' => FALSE,
+    '#options' => $countries,
+  );
+  if ( $current_continent && isset( $current_view['args'][1] ) ) {
+    $form['countries']['#default_value'] =
+      $current_continent . '/' . $current_view['args'][1];
+  }
+  else {
+    $form['countries']['#empty_option'] = t('Select country');
+  }
+
+  // Showing checkboxes with only a continent selected would probably be
+  // a bad idea.
+  $show_checkboxes = count( $current_view['args'] ) > 1;
+ 
+  if ( $show_checkboxes ) {
+
+    // Is the current view a country view (i.e. no selected region)?
+    if ( count( $current_view['args'] ) == 2 ) {
+      $country_result = &$current_view['result'];
+    }
+    else { // execute a country view to get all results for selected country
+      $country_view = views_get_view( $current_view['name'] );
+      $country_view->set_arguments( array_slice( $current_view['args'], 0, 2 ) );
+      $country_view->execute();
+      dsm( $country_view );
+      $country_result = &$country_view->result;
+      dsm( $country_result );
+
+      //foreach $country->view
+    }
+  }
+  else { // Just show a drop down
+    $regions = _sn_get_term_options( 'regions', 'field_country' );
+    $form['regions'] = array(
+      '#type' => 'select',
+      '#multiple' => FALSE,
+      '#empty_option' => t('Select region'),
+      '#options' => $regions,
+    );
+  }
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Filter'),
+  );
+
+  return $form;
 }
 
 /**
