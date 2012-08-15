@@ -348,7 +348,7 @@ function _sn_search_refine_form() {
   $countries = _sn_get_term_options( 'countries', 'field_continent' );
 
   $current_view = SnSearchViewStorage::getData();
-  dsm( $current_view );
+  //dsm( $current_view );
 
   $form['continents'] = array(
     '#type' => 'select',
@@ -360,7 +360,8 @@ function _sn_search_refine_form() {
     $form['continents']['#default_value'] = '0/' . $current_continent; 
   }
   else {
-    $form['#empty_option'] = t('Select continent');
+    $current_continent = NULL;
+    $form['continents']['#empty_option'] = t('Select continent');
   }
 
   $form['countries'] = array(
@@ -369,10 +370,12 @@ function _sn_search_refine_form() {
     '#options' => $countries,
   );
   if ( $current_continent && isset( $current_view['args'][1] ) ) {
-    $form['countries']['#default_value'] =
-      $current_continent . '/' . $current_view['args'][1];
+    $country_key = $current_continent . '/' . $current_view['args'][1];
+    if ( array_key_exists( $country_key, $countries ) ) {
+      $form['countries']['#default_value'] = $country_key;
+    }
   }
-  else {
+  if ( ! isset( $form['countries']['#default_value'] ) ) {
     $form['countries']['#empty_option'] = t('Select country');
   }
 
@@ -381,21 +384,22 @@ function _sn_search_refine_form() {
   $show_checkboxes = count( $current_view['args'] ) > 1;
  
   if ( $show_checkboxes ) {
+    $regions = _sn_get_region_checkbox_options( $current_view );
 
-    // Is the current view a country view (i.e. no selected region)?
     if ( count( $current_view['args'] ) == 2 ) {
-      $country_result = &$current_view['result'];
+      $selected = array_keys( $regions );
     }
-    else { // execute a country view to get all results for selected country
-      $country_view = views_get_view( $current_view['name'] );
-      $country_view->set_arguments( array_slice( $current_view['args'], 0, 2 ) );
-      $country_view->execute();
-      dsm( $country_view );
-      $country_result = &$country_view->result;
-      dsm( $country_result );
+    else {
+      $selected = explode( ',', $current_view['args'][2] );
+    }
+    //dsm( $selected );
 
-      //foreach $country->view
-    }
+    $form['regions'] = array(
+      '#title' => t('Regions'),
+      '#type' => 'checkboxes',
+      '#options' => $regions,
+      '#default_value' => $selected,
+    );
   }
   else { // Just show a drop down
     $regions = _sn_get_term_options( 'regions', 'field_country' );
@@ -416,7 +420,90 @@ function _sn_search_refine_form() {
 }
 
 /**
+ * Assumes that current view is not a search of a whole continent.
  */
-function _sn_search_refine_form_submit() {
+function _sn_get_region_checkbox_options( $current_view ) {
+
+  // Is the current view a country view (i.e. no selected region)?
+  if ( count( $current_view['args'] ) == 2 ) {
+    $country_result = &$current_view['result'];
+  }
+  else {
+    // execute a country view to get all results for selected country
+    $country_view = views_get_view( $current_view['name'] );
+    $country_view->set_arguments( array_slice( $current_view['args'], 0, 2 ) );
+    $country_view->execute();
+    //dsm( $country_view );
+    $country_result = &$country_view->result;
+  }
+  //dsm( $country_result );
+
+  // Compile a list of regions represented in the results.
+  $regions = array();
+  foreach ( $country_result as $result ) {
+
+    $region_id = $result->field_field_region[0]['raw']['tid'];
+
+    // Has this region_id been seen already in this loop?
+    if ( isset( $regions[$region_id] ) ) {
+      $regions[$region_id]['num'] += 1;
+    }
+    else { // new region
+      $regions[$region_id] = array(
+        'name' => $result->field_field_region[0]['rendered']['#markup'],
+        'num' => 1,
+      );
+    }
+  }
+  //dsm ( $regions );
+
+  // Change regions array to be suitable for use as checkbox options.
+  foreach ( $regions as $id => $details ) {
+    $regions[$id] = $details['name'] . ' (' . $details['num'] . ')';
+  }
+  //dsm ( $regions );
+
+  return $regions;
 }
 
+/**
+ */
+function _sn_search_refine_form_submit( $form, &$form_state ) {
+  //dsm( $form );
+
+  // Build path from region, country, continent selections.
+  $path = '';
+
+  // Is the Regions field a select box?
+  if ( $form['regions']['#type'] == 'select' ) {
+    $id = _sn_search_get_id_from_selection( $form_state['values']['regions'] );
+  }
+  else { // Regions is a set of checkboxes
+      $id = _sn_search_get_regions_from_checkboxes( $form_state['values']['regions'] );
+  }
+
+  $path = _sn_search_prepend_id_to_view_path( $path, $id );
+  $id = _sn_search_get_id_from_selection( $form_state['values']['countries'] );
+  $path = _sn_search_prepend_id_to_view_path( $path, $id );
+  $id = _sn_search_get_id_from_selection( $form_state['values']['continents'] );
+  $path = _sn_search_prepend_id_to_view_path( $path, $id );
+
+  $path = arg(0) . $path;
+  //dsm( $path );
+  // Redirect to selected view.
+  $form_state['redirect'][] = $path;
+}
+
+function _sn_search_get_regions_from_checkboxes( $checkboxes ) {
+  $regions = '';
+  foreach ( $checkboxes as $key => $value ) {
+    if ( $value ) {
+      $regions .= $key . ',';
+    }
+  }
+  if ( ! empty( $regions ) ) {
+    $regions = substr( $regions, 0, -1 );
+  }
+  //dsm( $regions );
+  return $regions;
+}
