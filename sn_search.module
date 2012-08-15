@@ -24,15 +24,17 @@ function sn_search_menu() {
 function _sn_search_ajax_search_hotels() {
   $args = array_filter( func_get_args() );
   //print_r( $args );
-  $markup = views_embed_view( 'search_hotels', 'default', $args );
-  drupal_json_output( array( 'view' => $markup ) );
+  $view = views_get_view( 'search_hotels' );
+  $view->set_arguments( $args );
+  drupal_json_output( array( 'view' => $view->preview() ) );
 }
 
 function _sn_search_ajax_search_multi_centre() {
   $args = array_filter( func_get_args() );
-  print_r( $args );
-  $markup = views_embed_view( 'search_multi_centre', 'default', $args );
-  drupal_json_output( array( 'view' => $markup ) );
+  //print_r( $args );
+  $view = views_get_view( 'search_multi_centre' );
+  $view->set_arguments( $args );
+  drupal_json_output( array( 'view' => $view->preview() ) );
 }
 
 /**

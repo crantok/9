@@ -37,12 +37,12 @@ jQuery(document).ready( function() {
         '/' + continent_id +
         '/' + country_id +
         '/' + region_ids.join(',');
+          console.debug( url );
 
       jQuery.get( url, null, function( data ) {
+          console.debug( data );
           jQuery( '#main > #content > .view' ).html( data.view );
           } );
-
-      return false;
 
       } ) // click
 
