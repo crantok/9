@@ -6,6 +6,35 @@
  */
 
 
+function sn_search_menu() {
+  return array(
+    'ajax/search-hotels' => array(
+      'page callback' => '_sn_search_ajax_search_hotels',
+      'type' => MENU_CALLBACK,
+      'access arguments' => array('access content'),
+    ),
+    'ajax/search-multi-centre' => array(
+      'page callback' => '_sn_search_ajax_search_multi_centre',
+      'type' => MENU_CALLBACK,
+      'access arguments' => array('access content'),
+    ),
+  );
+}
+
+function _sn_search_ajax_search_hotels() {
+  $args = array_filter( func_get_args() );
+  //print_r( $args );
+  $markup = views_embed_view( 'search_hotels', 'default', $args );
+  drupal_json_output( array( 'view' => $markup ) );
+}
+
+function _sn_search_ajax_search_multi_centre() {
+  $args = array_filter( func_get_args() );
+  print_r( $args );
+  $markup = views_embed_view( 'search_multi_centre', 'default', $args );
+  drupal_json_output( array( 'view' => $markup ) );
+}
+
 /**
  * Implements hook_block_info()
  */
