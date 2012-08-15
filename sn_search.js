@@ -37,11 +37,13 @@ jQuery(document).ready( function() {
         '/' + continent_id +
         '/' + country_id +
         '/' + region_ids.join(',');
-          console.debug( url );
+      //console.debug( url );
 
       jQuery.get( url, null, function( data ) {
-          console.debug( data );
-          jQuery( '#main > #content > .view' ).html( data.view );
+          //console.debug( data );
+          jQuery( '#main > #content > .view' )
+          .removeClass().addClass('view') // get rid of misleading classes
+          .html( data.view );
           } );
 
       } ) // click
