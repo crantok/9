@@ -5,6 +5,7 @@
  * Site specific search functionality.
  */
 
+
 /**
  * Implements hook_block_info()
  */
@@ -36,6 +37,9 @@ function sn_search_block_view( $delta ) {
     );
 
   case 'refine-search' :
+    $js_file = drupal_get_path('module', 'sn_search') . '/sn_search.js';
+    drupal_add_js( $js_file );
+
     return array(
       'content' => drupal_get_form( '_sn_search_refine_form' )
     );
