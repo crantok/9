@@ -37,11 +37,16 @@ function get_ajax_url_from_current_url() {
 }
 
 
-function get_ajax_url_from_form_selections() {
-
+function get_continent_tid() {
   var continent_value = jQuery(
       '#-sn-search-refine-form #edit-continents option:selected').val();
-  var continent_id = get_term_ids_from_option_value( continent_value ).tid;
+  console.debug( continent_value );
+  return get_term_ids_from_option_value( continent_value ).tid;
+}
+
+function get_ajax_url_from_form_selections() {
+
+  var continent_id = get_continent_tid();
 
   var country_value = jQuery(
       '#-sn-search-refine-form #edit-countries option:selected').val();
@@ -88,7 +93,9 @@ function load_and_apply_ajax_data( url ) {
       .click( on_form_option_selection );
       jQuery('#-sn-search-refine-form select.form-select')
       .change( on_form_option_selection );
-      } );
+
+  }
+  );
 }
 
 
@@ -105,9 +112,12 @@ function load_and_apply_ajax_data( url ) {
  *  The term IDs in an object { parent_tid : <parent_id>, tid : <tid> }
  */
 function get_term_ids_from_option_value( value ) {
+  console.debug( value );
   var pattern = new RegExp( '^([0-9]+)/([0-9]+)$' );
+  console.debug( pattern );
   var matches = pattern.exec( value );
-  if ( matches.length > 2 ) {
+  console.debug( matches );
+  if ( matches && matches.length > 2 ) {
     return { parent_tid : matches[1], tid : matches[2] };
   }
   else {
@@ -115,7 +125,25 @@ function get_term_ids_from_option_value( value ) {
   }
 }
 
-
+function hide_invalid_select_options() {
+  //var continent_id = get_continent_tid();
+  //jQuery('#-sn-search-refine-form #edit-countries option')
+  //  .each( function( idx, option ) {
+  //      if ( option ) {
+  //      console.debug( 'idx...' );
+  //      console.debug( idx );
+  //      console.debug( 'option...' );
+  //      console.debug( option );
+  //      console.debug( 'this...' );
+  //      console.debug( this );
+  //      var ids = get_term_ids_from_option_value( option.value );
+  //      if ( ids.parent_tid != continent_id ) {
+  //      jQuery( option ).addClass( '.ui-helper-hidden' );
+  //      }
+  //      }
+  //      }
+  //      );
+}
 /**
  * Version 1
  * Added exposed region filter to AJAX view and manipulated it through JS.

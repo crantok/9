@@ -166,12 +166,14 @@ function _sn_search_main_form() {
  *   Name of the field that contains a reference to the "parent" term.
  *   NOTE that if a parent field exists then it references terms that are in
  *   a different vocabulary from $vocab_name.
+ * @param $required_parent_id
+ *   If non-null, restrict returned elements to having this parent ID.
  *
  * @return
  *   Array of select options. Keys and values are strings. Array has the form...
  *   array( 'parent-id/term-id' => 'term-name', ... )
  */
-function _sn_get_term_options( $vocab_name, $parent_field_name=NULL ) {
+function _sn_get_term_options( $vocab_name, $parent_field_name=NULL, $required_parent_id = NULL ) {
   $query = new EntityFieldQuery();
   $entities = $query
     ->entityCondition('entity_type', 'taxonomy_term')
@@ -193,7 +195,10 @@ function _sn_get_term_options( $vocab_name, $parent_field_name=NULL ) {
     else {
       $parent_id = '0';
     }
-    $options[ $parent_id . '/' . $term->tid ] = $term->name;
+
+    if ( ! $required_parent_id  ||  $parent_id == $required_parent_id ) {
+      $options[ $parent_id . '/' . $term->tid ] = $term->name;
+    }
   }
 
   //dsm( $options );
@@ -405,7 +410,6 @@ function sn_search_views_post_execute( $view ) {
 function _sn_search_refine_form( $form, $form_state ) {
   $current_view = $form_state['build_info']['args'][0];
   $continents = _sn_get_term_options( 'continents' );
-  $countries = _sn_get_term_options( 'countries', 'field_continent' );
 
   $form['continents'] = array(
     '#type' => 'select',
@@ -421,12 +425,15 @@ function _sn_search_refine_form( $form, $form_state ) {
     $form['continents']['#empty_option'] = t('Select continent');
   }
   //print_r( $current_continent );
+  
+  $countries = _sn_get_term_options(
+    'countries', 'field_continent', $current_continent );
   $form['countries'] = array(
     '#type' => 'select',
     '#multiple' => FALSE,
     '#options' => $countries,
   );
-  if ( $current_continent && isset( $current_view['args'][1] ) ) {
+  if ( $current_continent  &&  isset( $current_view['args'][1] ) ) {
     $country_key = $current_continent . '/' . $current_view['args'][1];
     if ( array_key_exists( $country_key, $countries ) ) {
       $form['countries']['#default_value'] = $country_key;
@@ -467,11 +474,6 @@ function _sn_search_refine_form( $form, $form_state ) {
       '#options' => $regions,
     );
   }
-
-  $form['submit'] = array(
-    '#type' => 'submit',
-    '#value' => t('Filter'),
-  );
 
   return $form;
 }
