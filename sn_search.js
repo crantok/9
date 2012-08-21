@@ -6,28 +6,41 @@
 
 jQuery(document).ready( function() {
 
-    jQuery('#-sn-search-refine-form input.form-checkbox').click(
-      reload_view_with_search_refine_filters );
+    load_ajax_data_from_url();
+    attach_ajax_form_behaviours();
 
     } ); // ready
 
 
-/**
- * Get a taxonomy term ID from a select-box option value.
- *
- * Select-box option values are in the format:
- *     parent_term_id/term_id
- *
- * @param value
- *   A string containing the select box value.
- *
- * @return
- *  The term ID extracted from value
- */
-function get_term_id_from_option_value( value ) {
-  var pattern = new RegExp( '^[0-9]+/([0-9]+)$' );
-  var matches = pattern.exec( value );
-  return matches.length > 1 ? matches[1] : NULL;
+function load_ajax_data_from_url() {
+  var url = 'http://' + window.location.hostname;
+  pathname = window.location.pathname;
+
+  if ( url.charAt(url.length-1) != '/' ) {
+    url += '/';
+  }
+  url += 'ajax';
+  if ( pathname.charAt(0) != '/' ) {
+    url += '/';
+  }
+  url += pathname;
+  console.debug( url );
+
+  jQuery.get( url, null, function( data ) {
+      //console.debug( data );
+      jQuery( '#sn-search-hotels-page-view' ).html( data.view );
+      jQuery( '#ajax-sn-search-refine-form' ).html( data.form );
+      } );
+}
+
+function attach_ajax_form_behaviours() {
+
+  console.debug( 'attaching behaviours!' );
+
+  jQuery('#-sn-search-refine-form input.form-checkbox').click(
+      reload_view_with_search_refine_filters );
+  jQuery('#-sn-search-refine-form select.form-select').click(
+      reload_view_with_search_refine_filters );
 }
 
 
@@ -40,6 +53,8 @@ function get_term_id_from_option_value( value ) {
  *   A jQuery event object.
  */
 function reload_view_with_search_refine_filters( event ) {
+
+  console.debug( 'reloading!' );
 
   var continent_value = jQuery(
       '#-sn-search-refine-form #edit-continents option:selected').val();
@@ -74,14 +89,31 @@ function reload_view_with_search_refine_filters( event ) {
 
   jQuery.get( url, null, function( data ) {
       //console.debug( data );
-      jQuery( '#main > #content > .view' )
-      .removeClass().addClass('view') // get rid of misleading classes
-      .html( data.view );
+      jQuery( '#sn-search-hotels-page-view' ).html( data.view );
+      jQuery( '#ajax-sn-search-refine-form' ).html( data.form );
+      attach_ajax_form_behaviours();
       } );
 
 }
 
 
+/**
+ * Get a taxonomy term ID from a select-box option value.
+ *
+ * Select-box option values are in the format:
+ *     parent_term_id/term_id
+ *
+ * @param value
+ *   A string containing the select box value.
+ *
+ * @return
+ *  The term ID extracted from value
+ */
+function get_term_id_from_option_value( value ) {
+  var pattern = new RegExp( '^[0-9]+/([0-9]+)$' );
+  var matches = pattern.exec( value );
+  return matches.length > 1 ? matches[1] : NULL;
+}
 
 
 /**
