@@ -39,7 +39,7 @@ function attach_ajax_form_behaviours() {
 
   jQuery('#-sn-search-refine-form input.form-checkbox').click(
       reload_view_with_search_refine_filters );
-  jQuery('#-sn-search-refine-form select.form-select').click(
+  jQuery('#-sn-search-refine-form select.form-select').change(
       reload_view_with_search_refine_filters );
 }
 
@@ -47,7 +47,7 @@ function attach_ajax_form_behaviours() {
 /**
  * On an event, reload the search view using the selected filter arguments.
  *
- * This is a callback passed to the jQuery click() function.
+ * This is a callback passed to jQuery event attaching functions.
  *
  * @param event
  *   A jQuery event object.

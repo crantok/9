@@ -40,7 +40,7 @@ function _sn_search_multi_centre_page() {
 function _sn_search_hotels_ajax_data() {
   $args = array_filter( func_get_args() );
   //print_r( $args );
-  //
+
   $view = views_get_view( 'search_hotels' );
   $view->set_arguments( $args );
   $view_output = $view->preview();
@@ -50,6 +50,7 @@ function _sn_search_hotels_ajax_data() {
     'args' => $view->args,
     'result' => $view->result,
   );
+  //print_r( $view_data );
   $ajax_form = drupal_render(
     drupal_get_form( '_sn_search_refine_form', $view_data ) );
 
@@ -401,9 +402,8 @@ function sn_search_views_post_execute( $view ) {
 
 /**
  */
-function _sn_search_refine_form( $current_view ) {
-  //dsm( $current_view );
-
+function _sn_search_refine_form( $form, $form_state ) {
+  $current_view = $form_state['build_info']['args'][0];
   $continents = _sn_get_term_options( 'continents' );
   $countries = _sn_get_term_options( 'countries', 'field_continent' );
 
@@ -420,7 +420,7 @@ function _sn_search_refine_form( $current_view ) {
     $current_continent = NULL;
     $form['continents']['#empty_option'] = t('Select continent');
   }
-
+  //print_r( $current_continent );
   $form['countries'] = array(
     '#type' => 'select',
     '#multiple' => FALSE,
