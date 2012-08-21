@@ -1,54 +1,88 @@
+/**
+ * @file
+ * Client-side code for the site-specific search system.
+ */
 
+
+jQuery(document).ready( function() {
+
+    jQuery('#-sn-search-refine-form input.form-checkbox').click(
+      reload_view_with_search_refine_filters );
+
+    } ); // ready
+
+
+/**
+ * Get a taxonomy term ID from a select-box option value.
+ *
+ * Select-box option values are in the format:
+ *     parent_term_id/term_id
+ *
+ * @param value
+ *   A string containing the select box value.
+ *
+ * @return
+ *  The term ID extracted from value
+ */
 function get_term_id_from_option_value( value ) {
   var pattern = new RegExp( '^[0-9]+/([0-9]+)$' );
   var matches = pattern.exec( value );
   return matches.length > 1 ? matches[1] : NULL;
 }
 
-jQuery(document).ready( function() {
 
-    jQuery('#-sn-search-refine-form input.form-checkbox').click(
-      function( event ) {
+/**
+ * On an event, reload the search view using the selected filter arguments.
+ *
+ * This is a callback passed to the jQuery click() function.
+ *
+ * @param event
+ *   A jQuery event object.
+ */
+function reload_view_with_search_refine_filters( event ) {
 
-      var continent_value = jQuery(
-        '#-sn-search-refine-form #edit-continents option:selected').val();
-      var continent_id = get_term_id_from_option_value( continent_value );
-      var country_value = jQuery(
-        '#-sn-search-refine-form #edit-countries option:selected').val();
-      var country_id = get_term_id_from_option_value( country_value );
+  var continent_value = jQuery(
+      '#-sn-search-refine-form #edit-continents option:selected').val();
+  var continent_id = get_term_id_from_option_value( continent_value );
+  var country_value = jQuery(
+      '#-sn-search-refine-form #edit-countries option:selected').val();
+  var country_id = get_term_id_from_option_value( country_value );
 
-      var region_ids = [];
-      jQuery('#-sn-search-refine-form input.form-checkbox:checked').each(
-        function( idx, cb ) { region_ids.push( cb.value ); } );
+  var region_ids = [];
+  jQuery('#-sn-search-refine-form input.form-checkbox:checked').each(
+      function( idx, cb ) { region_ids.push( cb.value ); } );
 
-      var path_components = window.location.pathname.split('/');
+  var path_components = window.location.pathname.split('/');
 
-      while ( path_components.length > 0 && path_components[0].length == 0 ) {
-      path_components.shift();
-      }
+  // Get rid of any zero-length path components at start of path
+  // (e.g. because of a leading '/' in the pathname).
+  while ( path_components.length > 0 && path_components[0].length == 0 ) {
+    path_components.shift();
+  }
 
-      // if ( path_components.length == 0 ) { panic!; }
+  // if ( path_components.length == 0 ) { panic!; }
 
-      var search_name = path_components[0];
+  var search_name = path_components[0];
 
-      var url = 'http://' + window.location.hostname +
-        '/' + 'ajax' +
-        '/' + search_name +
-        '/' + continent_id +
-        '/' + country_id +
-        '/' + region_ids.join(',');
-      //console.debug( url );
+  var url = 'http://' + window.location.hostname +
+    '/' + 'ajax' +
+    '/' + search_name +
+    '/' + continent_id +
+    '/' + country_id +
+    '/' + region_ids.join(',');
+  //console.debug( url );
 
-      jQuery.get( url, null, function( data ) {
-          //console.debug( data );
-          jQuery( '#main > #content > .view' )
-          .removeClass().addClass('view') // get rid of misleading classes
-          .html( data.view );
-          } );
+  jQuery.get( url, null, function( data ) {
+      //console.debug( data );
+      jQuery( '#main > #content > .view' )
+      .removeClass().addClass('view') // get rid of misleading classes
+      .html( data.view );
+      } );
 
-      } ) // click
+}
 
-    } ); // ready
+
+
 
 /**
  * Version 1
