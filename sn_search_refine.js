@@ -41,11 +41,11 @@ function get_ajax_url_from_form_selections() {
 
   var continent_value = jQuery(
       '#-sn-search-refine-form #edit-continents option:selected').val();
-  var continent_id = get_term_ids_from_option_value( continent_value ).tid;
+  var continent_id = get_term_ids_from_option_value( continent_value );
 
   var country_value = jQuery(
       '#-sn-search-refine-form #edit-countries option:selected').val();
-  var country_id = get_term_ids_from_option_value( country_value ).tid;
+  var country_id = get_term_ids_from_option_value( country_value );
 
   var region_ids = [];
   jQuery('#-sn-search-refine-form input.form-checkbox:checked').each(
