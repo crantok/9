@@ -4,14 +4,23 @@
  */
 
 
-jQuery(document).ready( function() {
+jQuery(document).ready(
+    function() {
 
-    load_ajax_data_from_url();
+    var url = get_ajax_url_from_current_url();
+    load_and_apply_ajax_data( url );
+    }
+    );
 
-    } ); // ready
+
+function on_form_option_selection( event ) {
+
+  var url = get_ajax_url_from_form_selections();
+  load_and_apply_ajax_data( url );
+}
 
 
-function load_ajax_data_from_url() {
+function get_ajax_url_from_current_url() {
   var url = 'http://' + window.location.hostname;
   pathname = window.location.pathname;
 
@@ -23,34 +32,20 @@ function load_ajax_data_from_url() {
     url += '/';
   }
   url += pathname;
-  console.debug( url );
-
-  jQuery.get( url, null, function( data ) {
-      //console.debug( data );
-      jQuery( '#sn-search-hotels-page-view' ).html( data.view );
-      jQuery( '#ajax-sn-search-refine-form' ).html( data.form );
-      attach_ajax_form_behaviours();
-      } );
+  //console.debug( url );
+  return url;
 }
 
-/**
- * On an event, reload the search view using the selected filter arguments.
- *
- * This is a callback passed to jQuery event attaching functions.
- *
- * @param event
- *   A jQuery event object.
- */
-function reload_view_with_search_refine_filters( event ) {
 
-  console.debug( 'reloading!' );
+function get_ajax_url_from_form_selections() {
 
   var continent_value = jQuery(
       '#-sn-search-refine-form #edit-continents option:selected').val();
-  var continent_id = get_term_id_from_option_value( continent_value );
+  var continent_id = get_term_ids_from_option_value( continent_value ).tid;
+
   var country_value = jQuery(
       '#-sn-search-refine-form #edit-countries option:selected').val();
-  var country_id = get_term_id_from_option_value( country_value );
+  var country_id = get_term_ids_from_option_value( country_value ).tid;
 
   var region_ids = [];
   jQuery('#-sn-search-refine-form input.form-checkbox:checked').each(
@@ -75,32 +70,30 @@ function reload_view_with_search_refine_filters( event ) {
     '/' + country_id +
     '/' + region_ids.join(',');
   //console.debug( url );
-
-  jQuery.get( url, null, function( data ) {
-      //console.debug( data );
-      jQuery( '#sn-search-hotels-page-view' ).html( data.view );
-      jQuery( '#ajax-sn-search-refine-form' ).html( data.form );
-      attach_ajax_form_behaviours();
-      } );
-
+  return url;
 }
 
 
-function attach_ajax_form_behaviours() {
+function load_and_apply_ajax_data( url ) {
 
-  console.debug( 'attaching behaviours!' );
+  jQuery.get( url, null, function( data ) {
+      //console.debug( data );
 
-  var res1 = jQuery('#-sn-search-refine-form input.form-checkbox').click(
-      reload_view_with_search_refine_filters );
-  console.debug( res1 );
-  var res2 = jQuery('#-sn-search-refine-form select.form-select').change(
-      reload_view_with_search_refine_filters );
-  console.debug( res2 );
+      // Replace old view and form with newly retrieved ones.
+      jQuery( '#sn-search-hotels-page-view' ).html( data.view );
+      jQuery( '#ajax-sn-search-refine-form' ).html( data.form );
+
+      // Attach behaviours to form
+      jQuery('#-sn-search-refine-form input.form-checkbox')
+      .click( on_form_option_selection );
+      jQuery('#-sn-search-refine-form select.form-select')
+      .change( on_form_option_selection );
+      } );
 }
 
 
 /**
- * Get a taxonomy term ID from a select-box option value.
+ * Get a taxonomy term IDs from a select-box option value.
  *
  * Select-box option values are in the format:
  *     parent_term_id/term_id
@@ -109,12 +102,17 @@ function attach_ajax_form_behaviours() {
  *   A string containing the select box value.
  *
  * @return
- *  The term ID extracted from value
+ *  The term IDs in an object { parent_tid : <parent_id>, tid : <tid> }
  */
-function get_term_id_from_option_value( value ) {
-  var pattern = new RegExp( '^[0-9]+/([0-9]+)$' );
+function get_term_ids_from_option_value( value ) {
+  var pattern = new RegExp( '^([0-9]+)/([0-9]+)$' );
   var matches = pattern.exec( value );
-  return matches.length > 1 ? matches[1] : NULL;
+  if ( matches.length > 2 ) {
+    return { parent_tid : matches[1], tid : matches[2] };
+  }
+  else {
+    return NULL;
+  }
 }
 
 
