@@ -37,16 +37,11 @@ function get_ajax_url_from_current_url() {
 }
 
 
-function get_continent_tid() {
-  var continent_value = jQuery(
-      '#-sn-search-refine-form #edit-continents option:selected').val();
-  console.debug( continent_value );
-  return get_term_ids_from_option_value( continent_value ).tid;
-}
-
 function get_ajax_url_from_form_selections() {
 
-  var continent_id = get_continent_tid();
+  var continent_value = jQuery(
+      '#-sn-search-refine-form #edit-continents option:selected').val();
+  var continent_id = get_term_ids_from_option_value( continent_value ).tid;
 
   var country_value = jQuery(
       '#-sn-search-refine-form #edit-countries option:selected').val();
@@ -100,7 +95,7 @@ function load_and_apply_ajax_data( url ) {
 
 
 /**
- * Get a taxonomy term IDs from a select-box option value.
+ * Get a taxonomy term ID from a select-box option value.
  *
  * Select-box option values are in the format:
  *     parent_term_id/term_id
@@ -109,20 +104,12 @@ function load_and_apply_ajax_data( url ) {
  *   A string containing the select box value.
  *
  * @return
- *  The term IDs in an object { parent_tid : <parent_id>, tid : <tid> }
+ *  The term ID extracted from value
  */
-function get_term_ids_from_option_value( value ) {
-  console.debug( value );
-  var pattern = new RegExp( '^([0-9]+)/([0-9]+)$' );
-  console.debug( pattern );
+function get_term_id_from_option_value( value ) {
+  var pattern = new RegExp( '^[0-9]+/([0-9]+)$' );
   var matches = pattern.exec( value );
-  console.debug( matches );
-  if ( matches && matches.length > 2 ) {
-    return { parent_tid : matches[1], tid : matches[2] };
-  }
-  else {
-    return NULL;
-  }
+  return matches.length > 1 ? matches[1] : NULL;
 }
 
 function hide_invalid_select_options() {
