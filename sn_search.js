@@ -7,7 +7,6 @@
 jQuery(document).ready( function() {
 
     load_ajax_data_from_url();
-    attach_ajax_form_behaviours();
 
     } ); // ready
 
@@ -30,19 +29,9 @@ function load_ajax_data_from_url() {
       //console.debug( data );
       jQuery( '#sn-search-hotels-page-view' ).html( data.view );
       jQuery( '#ajax-sn-search-refine-form' ).html( data.form );
+      attach_ajax_form_behaviours();
       } );
 }
-
-function attach_ajax_form_behaviours() {
-
-  console.debug( 'attaching behaviours!' );
-
-  jQuery('#-sn-search-refine-form input.form-checkbox').click(
-      reload_view_with_search_refine_filters );
-  jQuery('#-sn-search-refine-form select.form-select').change(
-      reload_view_with_search_refine_filters );
-}
-
 
 /**
  * On an event, reload the search view using the selected filter arguments.
@@ -94,6 +83,19 @@ function reload_view_with_search_refine_filters( event ) {
       attach_ajax_form_behaviours();
       } );
 
+}
+
+
+function attach_ajax_form_behaviours() {
+
+  console.debug( 'attaching behaviours!' );
+
+  var res1 = jQuery('#-sn-search-refine-form input.form-checkbox').click(
+      reload_view_with_search_refine_filters );
+  console.debug( res1 );
+  var res2 = jQuery('#-sn-search-refine-form select.form-select').change(
+      reload_view_with_search_refine_filters );
+  console.debug( res2 );
 }
 
 
