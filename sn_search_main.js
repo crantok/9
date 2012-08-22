@@ -1,6 +1,6 @@
 /**
  * @file
- * Client-side code for the site-specific search system.
+ * Client-side code for the main search form.
  */
 
 
@@ -47,42 +47,56 @@ function restrict_form_options() {
 
 
   // Get continent ID
-  var continent_value = jQuery(
-      '#block-sn-search-main-search #edit-continents option:selected').val();
-  var continent_id;
-  if ( continent_value ) {
-    continent_id = get_term_ids_from_option_value( continent_value ).id;
-  }
-  else {
-    continent_id = null;
-  }
-
+  var continent_select =
+    jQuery( '#block-sn-search-main-search #edit-continents');
+  var continent_id = restrict_select_options( continent_select, 0 );
+  //console.debug( continent_id );
 
   // Restrict country options based on continent setting.
-  var country_select = jQuery('#block-sn-search-main-search #edit-countries');
-
-  if ( ! continent_id ) {
-    country_select.attr( 'disabled', 'disabled' );
-    is_disable_later_selects = false;
-  }
-  else {
-    country_select.removeAttr( 'disabled' );
-
-    var country_value = country_select.find( 'option:selected' ).val();
-    if ( country_value ) {
-      country_value = get_term_ids_from_option_value( country_value );
-    }
-
-    var is_remake_country_options = 
-      ! country_value  ||  country_value.parent_id != continent_id ;
-
-    if ( is_remake_country_options ) {
-      set_options_from_parent_id( country_select, continent_id );
-    }
-  }
+  var country_select =
+    jQuery('#block-sn-search-main-search #edit-countries');
+  var country_id = restrict_select_options( country_select, continent_id );
+  //console.debug( country_id );
 
   // Restrict region options based on country setting.
+  var region_select =
+    jQuery('#block-sn-search-main-search #edit-regions');
+  var region_id = restrict_select_options( region_select, country_id );
+  //console.debug( region_id );
+
   // Restrict destination options based on region setting.
+  var destination_select =
+    jQuery('#block-sn-search-main-search #edit-destinations');
+  var destination_id = restrict_select_options( destination_select, region_id );
+  //console.debug( destination_id );
+}
+
+function restrict_select_options( select, required_parent_id ) {
+  var id = null;
+
+  if ( required_parent_id == null ) {
+    select.attr( 'disabled', 'disabled' );
+    select.val('');
+  }
+  else {
+    select.removeAttr( 'disabled' );
+
+    var selected_value = select.find( 'option:selected' ).val();
+    var id_info;
+    if ( selected_value ) {
+      id_info = get_ids_from_option_value( selected_value );
+      id = id_info.id;
+    }
+
+    var is_remake_options = 
+      ! selected_value  ||  id_info.parent_id != required_parent_id ;
+
+    if ( is_remake_options ) {
+      set_options_from_parent_id( select, required_parent_id );
+      id = null;
+    }
+  }
+  return id;
 }
 
 function set_options_from_parent_id( select, required_parent_id ) {
@@ -92,14 +106,10 @@ function set_options_from_parent_id( select, required_parent_id ) {
   var options = select.data( 'options' );
 
   jQuery( options ).each( function() {
-      console.debug( this );
 
       if ( this.value ) {
       var option_parent_id =
-      get_term_ids_from_option_value( this.value ).parent_id;
-
-      console.debug( 'required' + required_parent_id );
-      console.debug( 'actual' + option_parent_id );
+      get_ids_from_option_value( this.value ).parent_id;
 
       if ( option_parent_id == required_parent_id ) {
       select.append(
@@ -119,19 +129,19 @@ function set_options_from_parent_id( select, required_parent_id ) {
 
 
 /**
- * Get taxonomy term IDs from a select-box option value.
+ * Get own and parent IDs from a select-box option value.
  *
  * Select-box option values are in the format:
- *     parent_term_id/term_id
+ *     parent_id/id
  *
  * @param value
  *   A string containing the select box value.
  *
  * @return
- *  The term IDs extracted from value
+ *  The IDs extracted from value
  */
-function get_term_ids_from_option_value( value ) {
-  var pattern = new RegExp( '^([0-9])+/([0-9]+)$' );
+function get_ids_from_option_value( value ) {
+  var pattern = new RegExp( '^([0-9]+)/([0-9]+)$' );
   var matches = pattern.exec( value );
   if ( matches.length > 2 ) {
     return { id : matches[2], parent_id : matches[1] };
@@ -141,65 +151,3 @@ function get_term_ids_from_option_value( value ) {
   }
 }
 
-function hide_invalid_select_options() {
-  //var continent_id = get_continent_tid();
-  //jQuery('#-sn-search-refine-form #edit-countries option')
-  //  .each( function( idx, option ) {
-  //      if ( option ) {
-  //      console.debug( 'idx...' );
-  //      console.debug( idx );
-  //      console.debug( 'option...' );
-  //      console.debug( option );
-  //      console.debug( 'this...' );
-  //      console.debug( this );
-  //      var ids = get_term_ids_from_option_value( option.value );
-  //      if ( ids.parent_tid != continent_id ) {
-  //      jQuery( option ).addClass( '.ui-helper-hidden' );
-  //      }
-  //      }
-  //      }
-  //      );
-}
-/**
- * Version 1
- * Added exposed region filter to AJAX view and manipulated it through JS.
- *
- * Didn't work because the exposed region filter clashed with the
- * contextual region filter. A node would have to have had two regions.
- *
- *
-function set_option_selection( region_id, do_select ) {
-  var view_option_path =
-    '#views-exposed-form-search-hotels-page select[name="field_region_tid[]"] option[value="' + region_id + '"]';
-
-  jQuery( view_option_path ).selected( do_select );
-}
-
-function submit_ajax_form() {
-  jQuery('#views-exposed-form-search-hotels-page .form-submit').click();
-}
-
-
-jQuery(document).ready( function() {
-
-    // The view loads with no regions selected in the region filter.
-    // Set the same selections as the search-form region checkboxes.
-    var checked_boxes =
-    jQuery('#-sn-search-refine-form input.form-checkbox:checked');
-
-    checked_boxes.each( function( x, cb ) {
-      var region_id = cb.value;
-      set_option_selection( region_id, true );
-      } );
-
-    // Add a click event to the search-form checkboxes so that
-    // they change selected regions in the view and reload it.
-    jQuery('#-sn-search-refine-form input.form-checkbox').click(
-      function( event ) {
-      var region_id = event.target.value;
-      var is_selected = event.target.checked;
-      set_option_selection( region_id, is_selected );
-      submit_ajax_form();
-      } );
-    } );
-*/

@@ -1,6 +1,6 @@
 /**
  * @file
- * Client-side code for the site-specific search system.
+ * Client-side code for the search refinement form.
  */
 
 
@@ -41,11 +41,11 @@ function get_ajax_url_from_form_selections() {
 
   var continent_value = jQuery(
       '#-sn-search-refine-form #edit-continents option:selected').val();
-  var continent_id = get_term_ids_from_option_value( continent_value );
+  var continent_id = get_id_from_option_value( continent_value );
 
   var country_value = jQuery(
       '#-sn-search-refine-form #edit-countries option:selected').val();
-  var country_id = get_term_ids_from_option_value( country_value );
+  var country_id = get_id_from_option_value( country_value );
 
   var region_ids = [];
   jQuery('#-sn-search-refine-form input.form-checkbox:checked').each(
@@ -106,7 +106,7 @@ function load_and_apply_ajax_data( url ) {
  * @return
  *  The term ID extracted from value
  */
-function get_term_id_from_option_value( value ) {
+function get_id_from_option_value( value ) {
   var pattern = new RegExp( '^[0-9]+/([0-9]+)$' );
   var matches = pattern.exec( value );
   return matches.length > 1 ? matches[1] : NULL;
@@ -123,7 +123,7 @@ function hide_invalid_select_options() {
   //      console.debug( option );
   //      console.debug( 'this...' );
   //      console.debug( this );
-  //      var ids = get_term_ids_from_option_value( option.value );
+  //      var ids = get_id_from_option_value( option.value );
   //      if ( ids.parent_tid != continent_id ) {
   //      jQuery( option ).addClass( '.ui-helper-hidden' );
   //      }

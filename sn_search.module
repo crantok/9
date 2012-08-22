@@ -144,10 +144,10 @@ function _sn_search_main_form() {
     '#empty_option' => t('Destination'),
     '#options' => $destinations,
   );
-  $form['multi-centre'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Multi Centre Holidays'),
-  );
+  //$form['multi-centre'] = array(
+  //  '#type' => 'checkbox',
+  //  '#title' => t('Multi Centre Holidays'),
+  //);
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Check availability'),
