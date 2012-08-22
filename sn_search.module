@@ -421,15 +421,17 @@ function _sn_search_refine_form( $form, $form_state ) {
 
   // Showing checkboxes with only a continent selected would probably be
   // a bad idea.
-  $show_checkboxes = count( $current_view['args'] ) > 1;
+  $show_regions = count( $current_view['args'] ) > 1;
  
-  if ( $show_checkboxes ) {
+  if ( $show_regions ) {
     $regions = _sn_get_region_checkbox_options( $current_view );
 
+    // Is a country (but no individual regions) selected?
     if ( count( $current_view['args'] ) == 2 ) {
+      // No regions are selected, so show all regions.
       $selected = array_keys( $regions );
     }
-    else {
+    else { // Individual region(s) already selected
       $selected = explode( ',', $current_view['args'][2] );
     }
     //dsm( $selected );
@@ -439,15 +441,6 @@ function _sn_search_refine_form( $form, $form_state ) {
       '#type' => 'checkboxes',
       '#options' => $regions,
       '#default_value' => $selected,
-    );
-  }
-  else { // Just show a drop down
-    $regions = _sn_get_term_options( 'regions', 'field_country' );
-    $form['regions'] = array(
-      '#type' => 'select',
-      '#multiple' => FALSE,
-      '#empty_option' => t('Select region'),
-      '#options' => $regions,
     );
   }
 
