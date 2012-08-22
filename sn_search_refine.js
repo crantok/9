@@ -8,7 +8,7 @@ jQuery(document).ready(
     function() {
 
     var url = get_ajax_url_from_current_url();
-    load_and_apply_ajax_data( url );
+    load_and_apply_ajax_data( url, false );
     }
     );
 
@@ -90,13 +90,21 @@ function get_ajax_url_from_form_selections( event ) {
 }
 
 
-function load_and_apply_ajax_data( url ) {
+function load_and_apply_ajax_data( url, do_replace_view ) {
+
+  // "Default variable"
+  if ( do_replace_view === undefined ) {
+    do_replace_view = true;
+  }
 
   jQuery.get( url, null, function( data ) {
       //console.debug( data );
 
       // Replace old view and form with newly retrieved ones.
-      jQuery( '#sn-search-hotels-page-view' ).html( data.view );
+      if ( do_replace_view ) {
+      jQuery( '#content > .view' )
+      .removeClass().addClass('view').html( data.view );
+      }
       jQuery( '#ajax-sn-search-refine-form' ).html( data.form );
 
       // Attach behaviours to form
@@ -105,8 +113,8 @@ function load_and_apply_ajax_data( url ) {
       jQuery('#-sn-search-refine-form select.form-select')
       .change( on_form_option_selection );
 
-  }
-  );
+      }
+      );
 }
 
 

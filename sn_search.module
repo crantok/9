@@ -8,14 +8,6 @@
 
 function sn_search_menu() {
   return array(
-    'search-hotels' => array(
-      'page callback' => '_sn_search_hotels_page',
-      'access arguments' => array('access content'),
-    ),
-    'search-multi-centre' => array(
-      'page callback' => '_sn_search_multi_centre_page',
-      'access arguments' => array('access content'),
-    ),
     'ajax/search-hotels' => array(
       'page callback' => '_sn_search_ajax_data',
       'type' => MENU_CALLBACK,
@@ -29,14 +21,6 @@ function sn_search_menu() {
   );
 }
 
-function _sn_search_hotels_page() {
-  return '<div id="sn-search-hotels-page-view"></div>';
-}
-
-function _sn_search_multi_centre_page() {
-  return '<div id="sn-search-multi-centre-page-view"></div>';
-}
-
 function _sn_search_ajax_data() {
   $view_name = str_replace( '-', '_', arg(1) );
   //print_r( $view_name );
@@ -45,7 +29,16 @@ function _sn_search_ajax_data() {
 
   $view = views_get_view( $view_name );
   $view->set_arguments( $args );
-  $view_output = $view->preview();
+
+  // Massive HACK
+  // 1) AJAX paging of views does not work when embedding a view via AJAX
+  //    in the first place!
+  // 2) Views pager links (non-ajax-paging) are based on the request URL,
+  //    which in our case is an ajax callback.
+  // Solution: Using non-ajax paging and have done a brute-force string-
+  // replace on the whole view output to get useful pager links. Yeeucch!
+  $view_output = str_replace( 'ajax/search-', 'search-', $view->preview() );
+  //print_r( $view_ouput );
 
   $view_data = array(
     'name' => $view->name,
@@ -53,11 +46,12 @@ function _sn_search_ajax_data() {
     'result' => $view->result,
   );
   //print_r( $view_data );
+
   $ajax_form = drupal_render(
     drupal_get_form( '_sn_search_refine_form', $view_data ) );
 
   drupal_json_output( array(
-    'view' => $view->preview(), 'form' => $ajax_form ) );
+    'view' => $view_output, 'form' => $ajax_form ) );
 }
 
 /**
