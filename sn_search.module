@@ -17,12 +17,12 @@ function sn_search_menu() {
       'access arguments' => array('access content'),
     ),
     'ajax/search-hotels' => array(
-      'page callback' => '_sn_search_hotels_ajax_data',
+      'page callback' => '_sn_search_ajax_data',
       'type' => MENU_CALLBACK,
       'access arguments' => array('access content'),
     ),
     'ajax/search-multi-centre' => array(
-      'page callback' => '_sn_search_multi_centre_ajax_data',
+      'page callback' => '_sn_search_ajax_data',
       'type' => MENU_CALLBACK,
       'access arguments' => array('access content'),
     ),
@@ -37,11 +37,13 @@ function _sn_search_multi_centre_page() {
   return '<div id="sn-search-multi-centre-page-view"></div>';
 }
 
-function _sn_search_hotels_ajax_data() {
+function _sn_search_ajax_data() {
+  $view_name = str_replace( '-', '_', arg(1) );
+  //print_r( $view_name );
   $args = array_filter( func_get_args() );
   //print_r( $args );
 
-  $view = views_get_view( 'search_hotels' );
+  $view = views_get_view( $view_name );
   $view->set_arguments( $args );
   $view_output = $view->preview();
 
@@ -56,14 +58,6 @@ function _sn_search_hotels_ajax_data() {
 
   drupal_json_output( array(
     'view' => $view->preview(), 'form' => $ajax_form ) );
-}
-
-function _sn_search_ajax_search_multi_centre() {
-  //$args = array_filter( func_get_args() );
-  ////print_r( $args );
-  //$view = views_get_view( 'search_multi_centre' );
-  //$view->set_arguments( $args );
-  //drupal_json_output( array( 'view' => $view->preview() ) );
 }
 
 /**
@@ -113,12 +107,12 @@ function _sn_search_main_form() {
   $continents = _sn_get_term_options( 'continents' );
   $countries = _sn_get_term_options( 'countries', 'field_continent' );
   $regions = _sn_get_term_options( 'regions', 'field_country' );
-  $hotels = _sn_search_get_hotel_options();
+  //$hotels = _sn_search_get_hotel_options();
 
   // Need to add multi-centre content in order to test this code
   //$multi_centres = _sn_search_get_multi_centre_options();
   //$destinations = array_merge( $hotels, $multi_centres );
-  $destinations = $hotels;
+  //$destinations = $hotels;
 
   $form['continents'] = array(
     '#type' => 'select',
@@ -138,16 +132,16 @@ function _sn_search_main_form() {
     '#empty_option' => t('Select region'),
     '#options' => $regions,
   );
-  $form['destinations'] = array(
-    '#type' => 'select',
-    '#multiple' => FALSE,
-    '#empty_option' => t('Destination'),
-    '#options' => $destinations,
-  );
-  //$form['multi-centre'] = array(
-  //  '#type' => 'checkbox',
-  //  '#title' => t('Multi Centre Holidays'),
+  //$form['destinations'] = array(
+  //  '#type' => 'select',
+  //  '#multiple' => FALSE,
+  //  '#empty_option' => t('Destination'),
+  //  '#options' => $destinations,
   //);
+  $form['multi-centre'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Multi Centre Holidays'),
+  );
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Check availability'),
@@ -214,7 +208,10 @@ function _sn_get_term_options( $vocab_name, $parent_field_name=NULL, $required_p
  * @return
  *   Array of select options. Keys and values are strings. Array has the form...
  *   array( 'region-term-id/hotel-node-id' => 'hotel-node-title', ... )
- */
+ *//*
+
+ OBSOLETE
+
 function _sn_search_get_hotel_options() {
   $query = new EntityFieldQuery();
   $entities = $query
@@ -238,6 +235,7 @@ function _sn_search_get_hotel_options() {
 
   return $options;
 }
+  */
 
 /**
  * Get select options for multi-centre-holidays (mch).
@@ -248,7 +246,10 @@ function _sn_search_get_hotel_options() {
  * @return
  *   Array of select options. Keys and values are strings. Array has the form...
  *   array( 'MC,region-term-id-list/mch-node-id' => 'mch-node-title', ... )
- */
+ *//*
+
+ OBSOLETE
+
 function _sn_search_get_multi_centre_options() {
   $query = new EntityFieldQuery();
   $entities = $query
@@ -280,6 +281,7 @@ function _sn_search_get_multi_centre_options() {
 
   return $options;
 }
+  */
 
 //
 // End of helper functions for main-search form-building.
@@ -291,21 +293,21 @@ function _sn_search_get_multi_centre_options() {
 function _sn_search_main_form_submit( $form, &$form_state ) {
   //dsm( $form_state );
   //
-  $destination = $form_state['values']['destinations'];
+  //$destination = $form_state['values']['destinations'];
 
-  // Did the user select a specific destination?
-  if ( ! empty( $destination ) ) {
+  //// Did the user select a specific destination?
+  //if ( ! empty( $destination ) ) {
 
-    $is_multi_centre = ( 0 === strpos( $destination, 'MC' ) );
-    if ( $is_multi_centre ) {
-      // Cut off MC (multi-centre) identifier
-      $destination = substr( $destination, 2 );
-    }
+  //  $is_multi_centre = ( 0 === strpos( $destination, 'MC' ) );
+  //  if ( $is_multi_centre ) {
+  //    // Cut off MC (multi-centre) identifier
+  //    $destination = substr( $destination, 2 );
+  //  }
 
-    $id = _sn_search_get_id_from_selection( $destination );
-    $form_state['redirect'][] = 'node/' . $id;
-  }
-  else { // User selected something larger than a specific destination
+  //  $id = _sn_search_get_id_from_selection( $destination );
+  //  $form_state['redirect'][] = 'node/' . $id;
+  //}
+  //else { // User selected something larger than a specific destination
 
     // Build path from region, country, continent selections.
     $path = '';
@@ -318,7 +320,7 @@ function _sn_search_main_form_submit( $form, &$form_state ) {
 
     // Is the user searching for multi-centre holidays?
     if ( ! empty( $form_state['values']['multi-centre'] ) ) {
-      $path = 'search-multi-centres' . $path;
+      $path = 'search-multi-centre' . $path;
     }
     else {
       $path = 'search-hotels' . $path;
@@ -326,7 +328,7 @@ function _sn_search_main_form_submit( $form, &$form_state ) {
 
     // Redirect to selected view.
     $form_state['redirect'][] = $path;
-  }
+  //}
 }
 
 // Helper functions for main-search form submission.
@@ -378,34 +380,6 @@ function _sn_search_prepend_id_to_view_path( $path, $id ) {
 //
 // End of helper functions for main-search form submission.
 
-
-class SnSearchViewStorage {
-
-  static private $viewData = 'no data';
-
-  static public function setData( $data ) {
-    self::$viewData = $data;
-  }
-
-  static public function getData() {
-    return self::$viewData;
-  } 
-
-  static public function clearData() {
-    unset( self::$viewData );
-    self::$viewData = NULL;
-  } 
-}
-
-
-function sn_search_views_post_execute( $view ) {
-  $data = array(
-    'name' => $view->name,
-    'args' => $view->args,
-    'result' => $view->result,
-  );
-  SnSearchViewStorage::setData( $data );
-}
 
 /**
  */
