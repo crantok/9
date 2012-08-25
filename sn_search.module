@@ -346,7 +346,10 @@ function _sn_search_refine_form( $form, $form_state ) {
     '#multiple' => FALSE,
     '#options' => $countries,
   );
-  if ( $args[1] != 'all' ) {
+
+  $is_country_selected = ( isset( $args[1] ) && $args[1] != 'all' );
+
+  if ( $is_country_selected ) {
     $country_key = $current_continent . '/' . $current_view['args'][1];
     if ( array_key_exists( $country_key, $countries ) ) {
       $form['countries']['#default_value'] = $country_key;
@@ -358,9 +361,7 @@ function _sn_search_refine_form( $form, $form_state ) {
 
   // Showing checkboxes with only a continent selected would probably be
   // a bad idea.
-  $show_regions = $current_view['args'][1] != 'all';
- 
-  if ( $show_regions ) {
+  if ( $is_country_selected ) {
     $regions = _sn_get_region_checkbox_options( $current_view );
 
     $selected = array();
