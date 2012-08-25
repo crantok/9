@@ -196,87 +196,6 @@ function _sn_get_term_options( $vocab_name, $parent_field_name=NULL, $required_p
   return $options;
 }
 
-/**
- * Get select options for hotels.
- *
- * @return
- *   Array of select options. Keys and values are strings. Array has the form...
- *   array( 'region-term-id/hotel-node-id' => 'hotel-node-title', ... )
- *//*
-
- OBSOLETE
-
-function _sn_search_get_hotel_options() {
-  $query = new EntityFieldQuery();
-  $entities = $query
-    ->entityCondition('entity_type', 'node')
-    ->entityCondition('bundle', 'hotel' )
-    ->execute();
-
-  //dsm( $entities );
-
-  $nodes = node_load_multiple( array_keys( $entities['node'] ) );
-
-  //dsm( $nodes );
-
-  $options = array();
-  foreach ( $nodes as $node ) {
-    $parent_id = $node->field_region['und'][0]['tid'];
-    $options[ $parent_id . '/' . $node->nid ] = $node->title;
-  }
-
-  //dsm( $options );
-
-  return $options;
-}
-  */
-
-/**
- * Get select options for multi-centre-holidays (mch).
- *
- * Ouput of this function is distinguishable from _sn_search_get_hotel_options
- * because key strings in the array returned by this function start with 'MC,'.
- *
- * @return
- *   Array of select options. Keys and values are strings. Array has the form...
- *   array( 'MC,region-term-id-list/mch-node-id' => 'mch-node-title', ... )
- *//*
-
- OBSOLETE
-
-function _sn_search_get_multi_centre_options() {
-  $query = new EntityFieldQuery();
-  $entities = $query
-    ->entityCondition('entity_type', 'node')
-    ->entityCondition('bundle', 'multi_centre_holiday' )
-    ->execute();
-
-  //dsm( $entities );
-
-  $nodes = node_load_multiple( array_keys( $entities['node'] ) );
-
-  //dsm( $nodes );
-
-  $options = array();
-  foreach ( $nodes as $node ) {
-
-    // Iterate through MC regions field values to build up a key prefix
-    // of comma separated region term IDs
-
-    $region_ids = 'MC';
-    foreach( $node->field_mc_region['und'] as $region ) {
-      $region_ids .= ',' . $region['tid'];
-    }
-
-    $options[ $region_ids . '/' . $node->nid ] = $node->title;
-  }
-
-  //dsm( $options );
-
-  return $options;
-}
-  */
-
 //
 // End of helper functions for main-search form-building.
 
@@ -285,44 +204,26 @@ function _sn_search_get_multi_centre_options() {
  * Submit function for the main search form.
  */
 function _sn_search_main_form_submit( $form, &$form_state ) {
-  //dsm( $form_state );
-  //
-  //$destination = $form_state['values']['destinations'];
 
-  //// Did the user select a specific destination?
-  //if ( ! empty( $destination ) ) {
+  // Build path from region, country, continent selections.
+  $path = '';
+  $id = _sn_search_get_id_from_selection( $form_state['values']['regions'] );
+  $path = _sn_search_prepend_id_to_view_path( $path, $id );
+  $id = _sn_search_get_id_from_selection( $form_state['values']['countries'] );
+  $path = _sn_search_prepend_id_to_view_path( $path, $id );
+  $id = _sn_search_get_id_from_selection( $form_state['values']['continents'] );
+  $path = _sn_search_prepend_id_to_view_path( $path, $id );
 
-  //  $is_multi_centre = ( 0 === strpos( $destination, 'MC' ) );
-  //  if ( $is_multi_centre ) {
-  //    // Cut off MC (multi-centre) identifier
-  //    $destination = substr( $destination, 2 );
-  //  }
+  // Is the user searching for multi-centre holidays?
+  if ( ! empty( $form_state['values']['multi-centre'] ) ) {
+    $path = 'search-multi-centre' . $path;
+  }
+  else {
+    $path = 'search-hotels' . $path;
+  }
 
-  //  $id = _sn_search_get_id_from_selection( $destination );
-  //  $form_state['redirect'][] = 'node/' . $id;
-  //}
-  //else { // User selected something larger than a specific destination
-
-    // Build path from region, country, continent selections.
-    $path = '';
-    $id = _sn_search_get_id_from_selection( $form_state['values']['regions'] );
-    $path = _sn_search_prepend_id_to_view_path( $path, $id );
-    $id = _sn_search_get_id_from_selection( $form_state['values']['countries'] );
-    $path = _sn_search_prepend_id_to_view_path( $path, $id );
-    $id = _sn_search_get_id_from_selection( $form_state['values']['continents'] );
-    $path = _sn_search_prepend_id_to_view_path( $path, $id );
-
-    // Is the user searching for multi-centre holidays?
-    if ( ! empty( $form_state['values']['multi-centre'] ) ) {
-      $path = 'search-multi-centre' . $path;
-    }
-    else {
-      $path = 'search-hotels' . $path;
-    }
-
-    // Redirect to selected view.
-    $form_state['redirect'][] = $path;
-  //}
+  // Redirect to selected view.
+  $form_state['redirect'][] = $path;
 }
 
 // Helper functions for main-search form submission.
@@ -378,15 +279,57 @@ function _sn_search_prepend_id_to_view_path( $path, $id ) {
 /**
  */
 function _sn_search_refine_form( $form, $form_state ) {
-  $current_view = $form_state['build_info']['args'][0];
-  $continents = _sn_get_term_options( 'continents' );
 
+  $current_view = $form_state['build_info']['args'][0];
+  $args = $current_view['args'];
+
+  // FRAGILITY: Necessary to know the order of boolean arguments passed
+  // to the view. Currently this is in alphabetic order, i.e.
+  //     eco, family, honeymoon, luxury
+
+  // @todo : This boolean checkbox generation is ugly. Extract to a
+  // function to be called for each checkbox.
+
+  $form['eco'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Eco hotels'),
+  );
+  if ( $args[3] != 'all' ) {
+    $form['eco']['#default_value'] = $args[3];
+  }
+
+  $form['honeymoon'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Honeymoon'),
+  );
+  if ( $args[5] != 'all' ) {
+    $form['honeymoon']['#default_value'] = $args[5];
+  }
+
+  $form['family'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Family'),
+  );
+  if ( $args[4] != 'all' ) {
+    $form['family']['#default_value'] = $args[4];
+  }
+
+  $form['luxury'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Luxury'),
+  );
+  if ( $args[6] != 'all' ) {
+    $form['luxury']['#default_value'] = $args[6];
+  }
+
+
+  $continents = _sn_get_term_options( 'continents' );
   $form['continents'] = array(
     '#type' => 'select',
     '#multiple' => FALSE,
     '#options' => $continents,
   );
-  if ( isset( $current_view['args'][0] ) ) {
+  if ( $args[0] != 'all' ) {
     $current_continent = $current_view['args'][0];
     $form['continents']['#default_value'] = '0/' . $current_continent; 
   }
@@ -403,7 +346,7 @@ function _sn_search_refine_form( $form, $form_state ) {
     '#multiple' => FALSE,
     '#options' => $countries,
   );
-  if ( $current_continent  &&  isset( $current_view['args'][1] ) ) {
+  if ( $args[1] != 'all' ) {
     $country_key = $current_continent . '/' . $current_view['args'][1];
     if ( array_key_exists( $country_key, $countries ) ) {
       $form['countries']['#default_value'] = $country_key;
@@ -415,17 +358,15 @@ function _sn_search_refine_form( $form, $form_state ) {
 
   // Showing checkboxes with only a continent selected would probably be
   // a bad idea.
-  $show_regions = count( $current_view['args'] ) > 1;
+  $show_regions = $current_view['args'][1] != 'all';
  
   if ( $show_regions ) {
     $regions = _sn_get_region_checkbox_options( $current_view );
 
-    // Is a country (but no individual regions) selected?
-    if ( count( $current_view['args'] ) == 2 ) {
-      // No regions are selected, so show all regions.
-      $selected = array_keys( $regions );
-    }
-    else { // Individual region(s) already selected
+    $selected = array();
+
+    // Are one or more regions selected?
+    if ( $args[2] != 'all' ) {
       $selected = explode( ',', $current_view['args'][2] );
     }
     //dsm( $selected );
@@ -446,14 +387,18 @@ function _sn_search_refine_form( $form, $form_state ) {
  */
 function _sn_get_region_checkbox_options( $current_view ) {
 
-  // Is the current view a country view (i.e. no selected region)?
-  if ( count( $current_view['args'] ) == 2 ) {
+  $args = $current_view['args'];
+
+  // Is the current view a country view (i.e. country selected but
+  // no regions selected)?
+  if ( $args[1] != 'all'  &&  $args[2] == 'all' ) {
     $country_result = &$current_view['result'];
   }
   else {
     // execute a country view to get all results for selected country
     $country_view = views_get_view( $current_view['name'] );
-    $country_view->set_arguments( array_slice( $current_view['args'], 0, 2 ) );
+    $args[2] = 'all';
+    $country_view->set_arguments( $args );
     $country_view->execute();
     //dsm( $country_view );
     $country_result = &$country_view->result;
